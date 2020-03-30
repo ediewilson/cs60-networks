@@ -8,4 +8,4 @@ This is a project containing COSC 60 (Computer Networks) labs. This project was 
 To find `labX` check `labX` subfolder.
 
 ## Copyright Notice 
-See LICENSE.md for copyright notice. 
+See LICENSE for copyright notice. 
