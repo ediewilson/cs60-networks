@@ -7,54 +7,46 @@
 #include <sys/types.h> 
 
 #define PORT 8099 
-#define MESSAGE_MAX 50
 
 int main(void) {
 
-    printf("start");
-		
     int serverSock, sock; 
     struct sockaddr_in serverAddress, clientAddress; 
     
-    int length = sizeof(serverAddress); 
-    char *message = "HTTP/1.1 200 OK\n\nEdie"; 
+    char message[] = "Edie"; 
        
     if((serverSock = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
         printf("error opening socket");
     } else printf("opened socket");
 
-    memset(&serverAddress,0, sizeof(serverAddress));
-    
     /*defining server properties*/
     serverAddress.sin_family = AF_INET; 
     serverAddress.sin_addr.s_addr = INADDR_ANY; 
     serverAddress.sin_port = htons(PORT); 
-       
+    
+    memset(&serverAddress.sin_zero,0,sizeof(serverAddress.sin_zero));
+
+    unsigned int length;
+    length = sizeof(struct sockaddr_in);
+
     /*attatching server to communication port*/
-    if (bind(serverSock,(struct sockaddr *)&serverAddress,sizeof(serverAddress)) < 0) { 
+    if (bind(serverSock,(struct sockaddr *)&serverAddress,length) < 0) { 
         printf("bind failed"); 
         exit(1); 
-    } 
+    } else printf("success on bind");
     
-    if (listen(serverSock,5) < 0) 
-    { 
+    if (listen(serverSock,5) < 0) { 
         printf("listen error"); 
         exit(1); 
-    } 
+    } else printf("listening");
     
-    if ((sock = accept(serverSock,(struct sockaddr *)&serverAddress,(socklen_t*)&length)) < 0) { 
+    if ((sock = accept(serverSock,(struct sockaddr *)&clientAddress,&length)) < 0) { 
         printf("accepting error"); 
         exit(1); 
-    } 
+    } else printf("accepting");
     
-    /*
-    int success = write(sock,message,strlen(message)); 
-    
-    if(success >= 0) {
-        printf("Name sent\n"); 
-    }
-    else printf("failure sending message");
-*/
-    send(serverSock,message,strlen(message), 0);
+    send(sock,message,strlen(message),0);
+    printf("message sent");
+
     return 0; 
 } 
