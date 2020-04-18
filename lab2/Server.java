@@ -10,6 +10,8 @@ import java.io.*;
 public class Server {
 	private ServerSocket listen; /* a socket that listens for connections and then adds them to the client handler array */
 	private ArrayList<ClientHandler> clients; /* an array of client handlers (threads) that let the server communicate with multiple clients  */
+	Scanner read;
+	OutputStream out;
 
 	public Server(ServerSocket listen) {
 		this.listen = listen;
@@ -45,10 +47,10 @@ public class Server {
 	/**
 	 * Makes sure that everyone in the room gets the message, except the sender for a second time
 	 */
-	public synchronized void broadcast(ClientHandler from, String chat) {
+	public synchronized void broadcast(ClientHandler from, String chat) throws IOException {
 		for (ClientHandler c : clients) {
 			if (c != from) {
-				c.out.println(chat);
+				c.out.write(chat.getBytes());
 			}
 		}
 	}
@@ -59,7 +61,9 @@ public class Server {
 	public class ClientHandler extends Thread {
 		private Socket sock;
 		private Server server;
-		private PrintWriter out;
+		private OutputStream out;
+		InputStream in;
+		Scanner read;
 
 		public ClientHandler(Socket sock, Server server) {
 			super("ClientHandler");
@@ -73,18 +77,28 @@ public class Server {
 				System.out.println("New user in the chat");
 
 				/* communication channel */
-				out = new PrintWriter(sock.getOutputStream(), true);
-				BufferedReader in = new BufferedReader(new InputStreamReader(sock.getInputStream()));
+				out  = sock.getOutputStream();
+				in = sock.getInputStream();
+				read = new Scanner(System.in);
 
 				/* get username */
-				out.println("Enter a username:");
-				name = in.readLine();
+				out.write("Enter a username:".getBytes());
+				byte[] inputBuffer = new byte[500];
+				in.read(inputBuffer);
+				name = new String(inputBuffer).trim();
+
 				System.out.println("It's " + name);
-				out.println("Welcome " + name + "!");
+
+				String message = "Welcome " + name + "!";
+				out.write(message.getBytes());
+
 				server.broadcast(this, name + " entered the room");
 
+				byte[] buffer = new byte[500];
+				in.read(buffer);
+				line = new String(buffer).trim();
 				/* The chat */
-				while ((line = in.readLine()) != null) {
+				while (line != null) {
 					String chat = name + ": " + line;
 					if(chat.equals(name + ": quit")) {
 						System.out.println(name + " hung up.");
@@ -96,6 +110,9 @@ public class Server {
 						System.out.println(chat);
 						/* broadcasts the chat to everyone else in the chat */
 						server.broadcast(this, chat);
+						buffer = new byte[500];
+						in.read(buffer);
+						line = new String(buffer).trim();
 					}
 				}
 
@@ -120,11 +137,5 @@ public class Server {
 	public static void main(String[] args) throws Exception {
 		System.out.println("Waiting for connections...");
 		new Server(new ServerSocket(7777)).getConnections();
-
-		/*terminates the program if the server wants to quit
-		Scanner read = new Scanner(System.in);
-		if (read.nextLine().equals("quit")) {
-			System.exit(0);
-		}*/
 	}
 }
