@@ -1,30 +1,31 @@
 import java.io.*;
-import java.net.*;
 import java.util.*;
+import java.net.Socket;
 
 
 public class Client {
 	private Scanner read;
 	private Socket sock;
-	private PrintWriter out;
-	private BufferedReader in;
+	private OutputStream out;
+	private InputStream in;
 	private boolean gone = false;
 
-	public Client() throws IOException {
+	private Client() throws IOException {
 		read = new Scanner(System.in);
 
 		/* opens a socket, writer, and reader */
 		System.out.println("Entering the chat room...");
 		sock = new Socket("localhost", 7777);
-		out = new PrintWriter(sock.getOutputStream(), true);
-		in = new BufferedReader(new InputStreamReader(sock.getInputStream()));
+		out = sock.getOutputStream();
+		in = sock.getInputStream();
 		System.out.println("... entered");
 
 		// Greeting; name request and response
-		String line = in.readLine();
-		System.out.println(line);
-		String name = read.nextLine();
-		out.println(name);
+		byte[] inputBuffer = new byte[500];
+		in.read(inputBuffer);
+		System.out.println(new String(inputBuffer).trim());
+		String name = read.nextLine().trim();
+		out.write(name.getBytes());
 
 		// Fire off a new thread to handle incoming messages from server
 		ServerHandler incoming = new ServerHandler(in);
@@ -36,10 +37,11 @@ public class Client {
 	 * Get console input and send it to server;
 	 * stop & clean up when server has hung up (noted by hungup)
 	 */
-	public void handleUser() throws IOException {
+	private void handleUser() throws IOException {
 		while (!gone) {
-			out.println(read.nextLine());
-			if (read.nextLine().equals("quit")) {
+			String inputLine = read.nextLine().trim();
+			out.write(inputLine.getBytes());
+			if (inputLine.equals("quit")) {
 				System.exit(0);
 			}
 		}
@@ -54,17 +56,18 @@ public class Client {
 	 * Handles communication from the server (via "in"), printing to System.out
 	 */
 	private class ServerHandler extends Thread {
-		private BufferedReader in;
+		private InputStream in;
 
-		private ServerHandler(BufferedReader in) {
+		private ServerHandler(InputStream in) {
 			this.in = in;
 		}
 
 		public void run() {
-			String line;
 			try {
-				while ((line = in.readLine()) != null) {
-					System.out.println(line);
+				byte[] bytes = new byte[500];
+				while (in.read(bytes) != -1) {
+					System.out.println(new String(bytes).trim());
+					bytes = new byte[500];
 				}
 			}
 			catch (IOException e) {
