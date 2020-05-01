@@ -77,9 +77,6 @@ def mrt_recieve1():
     if checksum == 0xFFFF:
         checksum = 0
 
-    # ACK the packet if it's uncorrupted; otherwise send that it didn't work
-    packetValid = checksum == 0 and nextAck == ackNum
-
     if packetValid:
         ackNum += 1
 
